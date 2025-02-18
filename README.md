@@ -13,6 +13,7 @@ Backend Setup (Django)
   python -m venv venv
   venv\Scripts\activate
   pip install -r requirements.txt
+  py manage.py createsuperuser
 ```
     
 ## Running Tests
