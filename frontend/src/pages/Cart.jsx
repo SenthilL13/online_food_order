@@ -3,16 +3,18 @@ import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Button from "react-bootstrap/Button";
-import Form from "react-bootstrap/Form"
+import Form from "react-bootstrap/Form";
+import Modal from "react-bootstrap/Modal";
 import { useNavigate } from "react-router-dom";
-import "./pages.css"
-import axios from "axios"
+import "./pages.css";
 
 function Cart() {
-
   const [cart, setCart] = useState([]);
   const [customerName, setCustomerName] = useState("");
   const [address, setAddress] = useState("");
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false); // State for payment options modal
+  const [showUPIPayment, setShowUPIPayment] = useState(false); // State for UPI payment modal
+  const [upiId, setUpiId] = useState(""); // State to store UPI ID
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,45 +29,65 @@ function Cart() {
   };
 
   const totalPrice = cart.reduce((total, item) => total + item.price, 0);
-  const placeOrder = () => {
+
+  const handleProceedToPayment = () => {
     if (!customerName || !address) {
       alert("Please enter your name and address.");
       return;
     }
+    setShowPaymentOptions(true); // Show payment options modal
+  };
 
-    const orderData = {
-      customer_name: customerName,
-      address: address,
-      items: cart.map(item => ({
-        product_name: item.name,
-        price: item.price
-      }))
-    };
+  const handleCashOnDelivery = () => {
+    alert("Order placed successfully! You will pay via Cash on Delivery.");
+    localStorage.removeItem("cart");
+    setCart([]);
+    setCustomerName("");
+    setAddress("");
+    setShowPaymentOptions(false); // Close modal
+    navigate("/"); // Redirect to home page
+  };
 
-    axios
-      .post("http://127.0.0.1:8000/place_order/", orderData)
-      .then((response) => {
-        alert("Order placed successfully!");
-        localStorage.removeItem("cart");
-        setCart([]);
-        setCustomerName("");
-        setAddress("");
-      })
-      .catch((error) => {
-        console.error("Error placing order:", error);
-        alert("Failed to place order. Try again!");
-      });
+  const handleOnlinePayment = () => {
+    setShowPaymentOptions(false); // Close payment options modal
+    setShowUPIPayment(true); // Show UPI payment modal
+  };
+
+  const handleUPIPayment = () => {
+    if (!upiId) {
+      alert("Please enter your UPI ID.");
+      return;
+    }
+
+    // Simulate UPI payment process
+    const confirmPayment = window.confirm(
+      `Confirm UPI payment of ${totalPrice} Rs?\nUPI ID: ${upiId}`
+    );
+
+    if (confirmPayment) {
+      alert("Payment Successful! Your order has been placed.");
+      localStorage.removeItem("cart");
+      setCart([]);
+      setCustomerName("");
+      setAddress("");
+      setUpiId("");
+      setShowUPIPayment(false); // Close UPI payment modal
+      navigate("/"); // Redirect to home page
+    } else {
+      alert("Payment cancelled.");
+    }
   };
 
   return (
     <Container className="w-75 border rounded text-light mt-5">
-      <Row className='d-flex align-items-center my-5'>
-            <Col xs={1} className='headingline'></Col>
-            <Col xs={'auto'}>
-                <h1>Your Cart</h1>
-            </Col>
-            <Col xs={7} className='headingline'></Col>
-        </Row>
+      <Row className="d-flex align-items-center my-5">
+        <Col xs={1} className="headingline"></Col>
+        <Col xs={"auto"}>
+          <h1>Your Cart</h1>
+        </Col>
+        <Col xs={7} className="headingline"></Col>
+      </Row>
+
       {cart.length === 0 ? (
         <p className="text-warning">Your cart is empty.</p>
       ) : (
@@ -85,11 +107,14 @@ function Cart() {
           </Row>
         ))
       )}
+
       <Row className="my-5">
         <Col>
           {cart.length > 0 && (
             <>
-              <h4 className="text-light mt-4">Your total is: <span className="text-danger">{totalPrice} Rs</span></h4>
+              <h4 className="text-light mt-4">
+                Your total is: <span className="text-danger">{totalPrice} Rs</span>
+              </h4>
             </>
           )}
         </Col>
@@ -103,29 +128,94 @@ function Cart() {
           </Button>
         </Col>
       </Row>
+
       <Row>
         <Form>
           <Row>
             <Col>
-              <Form.Control type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Name" />
+              <Form.Control
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Name"
+              />
             </Col>
             <Col>
-              <Form.Control as="textarea" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Address" />
+              <Form.Control
+                as="textarea"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Address"
+              />
             </Col>
           </Row>
         </Form>
       </Row>
+
       <Row>
         <Col>
-      <Button
-        className="mt-5"
-        variant="success"
-        onClick={placeOrder}
-      >
-        Place Order
-      </Button>
+          <Button
+            className="mt-5"
+            variant="success"
+            onClick={handleProceedToPayment}
+            disabled={cart.length === 0}
+          >
+            Proceed to Payment
+          </Button>
         </Col>
       </Row>
+
+      {/* Payment Options Modal */}
+      <Modal show={showPaymentOptions} onHide={() => setShowPaymentOptions(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Choose Payment Method</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Please select your preferred payment method:</p>
+          <Button
+            variant="primary"
+            className="w-100 mb-3"
+            onClick={handleCashOnDelivery}
+          >
+            Cash on Delivery
+          </Button>
+          <Button
+            variant="success"
+            className="w-100"
+            onClick={handleOnlinePayment}
+          >
+            Online Payment (UPI)
+          </Button>
+        </Modal.Body>
+      </Modal>
+
+      {/* UPI Payment Modal */}
+      <Modal show={showUPIPayment} onHide={() => setShowUPIPayment(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>UPI Payment</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Enter UPI ID</Form.Label>
+              <Form.Control
+                type="text"
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                placeholder="e.g., yourname@upi"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowUPIPayment(false)}>
+            Cancel
+          </Button>
+          <Button variant="success" onClick={handleUPIPayment}>
+            Pay Now
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }
